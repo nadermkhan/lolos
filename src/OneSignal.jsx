@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react"
-import { Bell, CheckCircle, Loader2, AlertCircle, XCircle } from "lucide-react"
 import addNotification from 'react-push-notification'
 
 const ONE_SIGNAL_APP_ID = "a405e5ea-deec-490e-bdc3-38b65b4ec31c"
