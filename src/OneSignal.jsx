@@ -110,15 +110,16 @@ const OneSignal = () => {
     // Tag the user in OneSignal for segmentation
     if (isOneSignalInitialized) {
         const OneSignal = window.OneSignal;
-        OneSignal.push(function() {
-            const tagsToRemove = categories.map(c => c.id);
-            OneSignal.removeTags(tagsToRemove).then(() => {
-                 console.log("Removed old category tags:", tagsToRemove);
-                 OneSignal.sendTag(category.id, "true").then(() => {
-                     console.log(`Tagged user with: ${category.id}`);
-                 });
-            });
-        });
+        const tagsToRemove = categories.map(c => c.id);
+
+        // CORRECTED: Use the array-based command syntax for SDK methods
+        // This queues the commands correctly instead of executing them in a problematic scope.
+        console.log("Queuing removal of tags:", tagsToRemove);
+        OneSignal.push(["removeTags", tagsToRemove]);
+
+        console.log(`Queuing sending of tag: ${category.id}`);
+        OneSignal.push(["sendTag", category.id, "true"]);
+
     } else {
         console.warn("OneSignal SDK not initialized yet. Cannot send tag.");
     }
