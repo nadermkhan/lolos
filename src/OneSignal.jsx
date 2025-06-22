@@ -56,12 +56,12 @@ const OneSignal = () => {
       script.src = "https://cdn.onesignal.com/sdks/OneSignalSDK.js";
       script.async = true;
       script.onload = () => {
+        // Use window.OneSignal as it's loaded globally
         const OneSignal = window.OneSignal || [];
         OneSignal.push(function() {
           OneSignal.init({
-            // IMPORTANT: Replace with your actual OneSignal App ID
+            // IMPORTANT: Replace with your actual OneSignal App ID from your dashboard
             appId: "02d12db1-1701-46b8-b7ec-4d8b39fcbf99", 
-            //safari_web_id: "YOUR_SAFARI_WEB_ID", // If you have one
             allowLocalhostAsSecureOrigin: true,
           });
           
@@ -111,11 +111,9 @@ const OneSignal = () => {
     if (isOneSignalInitialized) {
         const OneSignal = window.OneSignal;
         OneSignal.push(function() {
-            // First, remove all existing category tags to ensure user is in only one segment
             const tagsToRemove = categories.map(c => c.id);
             OneSignal.removeTags(tagsToRemove).then(() => {
                  console.log("Removed old category tags:", tagsToRemove);
-                 // Then, add the new tag for the selected category
                  OneSignal.sendTag(category.id, "true").then(() => {
                      console.log(`Tagged user with: ${category.id}`);
                  });
@@ -187,4 +185,4 @@ const OneSignal = () => {
   );
 };
 
-export default OneSignal
+export default OneSignal;
