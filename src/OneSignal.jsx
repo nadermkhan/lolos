@@ -39,7 +39,7 @@ const OneSignal = () => {
   const [permission, setPermission] = useState('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [userId, setUserId] = useState(null);
-  const [subscriptionId, setSubscriptionId] = useState(null);
+  
 
   useEffect(() => {
     // Check for Notification API support
@@ -117,9 +117,7 @@ const OneSignal = () => {
             if (event.current.optedIn !== undefined) {
               setIsSubscribed(event.current.optedIn);
             }
-            if (event.current.id) {
-              setSubscriptionId(event.current.id);
-            }
+           
             // Check for user ID when subscription changes
             setTimeout(() => checkAndLogUserState(), 1000);
           });
@@ -150,7 +148,7 @@ const OneSignal = () => {
           });
 
           setUserId(currentUserId);
-          setSubscriptionId(currentSubscriptionId);
+          
           setIsSubscribed(currentOptedIn);
           setPermission(currentPermission ? 'granted' : 'denied');
 
