@@ -80,6 +80,25 @@ const Label = ({ htmlFor, children, className = "" }) => (
   </label>
 )
 
+// Utility function for retrying tag updates
+const updateTagsWithRetry = async (tags, maxRetries = 3, delay = 1000) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await window.OneSignal.User.addTags(tags);
+      console.log('Tags successfully updated:', tags);
+      return true;
+    } catch (error) {
+      console.error(`Attempt ${i + 1} failed:`, error);
+      
+      if (i < maxRetries - 1) {
+        // Wait before retrying, with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+      }
+    }
+  }
+  return false;
+};
+
 export default function OneSignal() {
   const [oneSignalState, setOneSignalState] = useState({
     isLoading: true,
@@ -135,14 +154,15 @@ export default function OneSignal() {
               if (isOptedIn && onesignalId) {
                 const savedCategory = localStorage.getItem("selectedNotificationCategory")
                 if (savedCategory) {
-                  try {
-                    await window.OneSignal.User.addTags({
-                      category: savedCategory,
-                      subscribed_at: new Date().toISOString()
-                    })
-                  } catch (error) {
-                    console.error("Error setting tags on init:", error)
-                  }
+                  // Wait a bit before updating tags
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  
+                  const tags = {
+                    category: savedCategory,
+                    subscribed_at: new Date().toISOString()
+                  };
+                  
+                  await updateTagsWithRetry(tags);
                 }
               }
             }
@@ -250,21 +270,37 @@ export default function OneSignal() {
           })
 
           if (isOptedIn && onesignalId) {
+            // Set external ID for more reliable identification
+            const externalId = localStorage.getItem('userExternalId') || 
+                             `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            localStorage.setItem('userExternalId', externalId);
+            
+            try {
+              await OneSignalInstance.login(externalId);
+              console.log('External ID set:', externalId);
+            } catch (error) {
+              console.error('Error setting external ID:', error);
+            }
+
             const savedCategory = localStorage.getItem("selectedNotificationCategory")
             if (savedCategory) {
-              try {
-                await OneSignalInstance.User.addTags({
-                  category: savedCategory,
-                  subscribed_at: new Date().toISOString()
-                })
-                
+              // Wait before updating tags to ensure user record is ready
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
+              const tags = {
+                category: savedCategory,
+                subscribed_at: new Date().toISOString()
+              };
+              
+              const success = await updateTagsWithRetry(tags);
+              
+              if (success) {
                 localStorage.setItem("notificationSubscription", JSON.stringify({
                   userId: onesignalId,
                   category: savedCategory,
                   subscribedAt: new Date().toISOString()
-                }))
-              } catch (error) {
-                console.error("Error setting initial tags:", error)
+                }));
               }
             }
           }
@@ -288,19 +324,22 @@ export default function OneSignal() {
             if (isNowOptedIn && newOnesignalId) {
               const savedCategory = localStorage.getItem("selectedNotificationCategory")
               if (savedCategory) {
-                try {
-                  await OneSignalInstance.User.addTags({
-                    category: savedCategory,
-                    subscribed_at: new Date().toISOString()
-                  })
-                  
+                // Wait a bit for the user record to be fully created
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                const tags = {
+                  category: savedCategory,
+                  subscribed_at: new Date().toISOString()
+                };
+                
+                const success = await updateTagsWithRetry(tags);
+                
+                if (success) {
                   localStorage.setItem("notificationSubscription", JSON.stringify({
                     userId: newOnesignalId,
                     category: savedCategory,
                     subscribedAt: new Date().toISOString()
-                  }))
-                } catch (error) {
-                  console.error("Error updating tags on subscription change:", error)
+                  }));
                 }
               }
             } else {
@@ -334,23 +373,22 @@ export default function OneSignal() {
   useEffect(() => {
     const updateSubscriptionData = async () => {
       if (oneSignalState.isSubscribed && selectedCategory && oneSignalState.userId && window.OneSignal) {
-        try {
-          await window.OneSignal.User.addTags({
-            category: selectedCategory,
-            last_updated: new Date().toISOString()
-          })
-
-          console.log('Tags updated for user:', oneSignalState.userId, { category: selectedCategory })
-        } catch (error) {
-          console.error("Error updating tags:", error)
-          // Don't show error to user, just log it
-        }
-        
-        localStorage.setItem("notificationSubscription", JSON.stringify({
-          userId: oneSignalState.userId,
+        const tags = {
           category: selectedCategory,
-          subscribedAt: new Date().toISOString()
-        }))
+          last_updated: new Date().toISOString()
+        };
+
+        const success = await updateTagsWithRetry(tags);
+        
+        if (success) {
+          console.log('Tags updated for user:', oneSignalState.userId, { category: selectedCategory });
+          
+          localStorage.setItem("notificationSubscription", JSON.stringify({
+            userId: oneSignalState.userId,
+            category: selectedCategory,
+            subscribedAt: new Date().toISOString()
+          }));
+        }
       }
     }
 
@@ -376,29 +414,108 @@ export default function OneSignal() {
         onClick: () => console.log('Notification clicked'),
       })
 
-      // If already subscribed, update OneSignal tags
+      // If already subscribed, update OneSignal tags with retry
       if (oneSignalState.isSubscribed && oneSignalState.userId && window.OneSignal) {
-        try {
-          await window.OneSignal.User.addTags({
-            category: categoryId,
-            category_name: category.name,
-            updated_at: new Date().toISOString()
-          })
-          
-          console.log('Category updated for user:', oneSignalState.userId, categoryId)
+        const tags = {
+          category: categoryId,
+          category_name: category.name,
+          updated_at: new Date().toISOString()
+        };
+
+        const success = await updateTagsWithRetry(tags);
+        
+        if (success) {
+          console.log('Category updated for user:', oneSignalState.userId, categoryId);
           
           localStorage.setItem("notificationSubscription", JSON.stringify({
             userId: oneSignalState.userId,
             category: categoryId,
             subscribedAt: new Date().toISOString()
-          }))
-        } catch (error) {
-          console.error("Error updating OneSignal tags:", error)
-          // Continue execution, don't break the user experience
+          }));
+        } else {
+          console.error("Failed to update tags after retries");
+          // Show a user-friendly error message
+          addNotification({
+            title: 'Update pending',
+            message: 'Your preference has been saved and will be updated shortly.',
+            theme: 'light',
+            duration: 3000,
+          });
         }
       }
     }
   }
+
+  const handleSubscribe = async () => {
+    if (!window.OneSignal) {
+      console.error("OneSignal is not initialized");
+      return;
+    }
+
+    try {
+      // Request permission and subscribe
+      await window.OneSignal.User.PushSubscription.optIn();
+      
+      // Wait for the subscription to be processed
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Get the new user ID
+      const newUserId = await window.OneSignal.User.onesignalId;
+      
+      if (newUserId && selectedCategory) {
+        // Set external ID
+        const externalId = localStorage.getItem('userExternalId') || 
+                         `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        localStorage.setItem('userExternalId', externalId);
+        
+        try {
+          await window.OneSignal.login(externalId);
+          console.log('External ID set on subscribe:', externalId);
+        } catch (error) {
+          console.error('Error setting external ID:', error);
+        }
+
+        // Update tags with retry
+        const tags = {
+          category: selectedCategory,
+          category_name: categories.find(c => c.id === selectedCategory)?.name,
+          subscribed_at: new Date().toISOString()
+        };
+        
+        await updateTagsWithRetry(tags);
+      }
+    } catch (error) {
+      console.error("Error subscribing to notifications:", error);
+      addNotification({
+        title: 'Subscription failed',
+        message: 'Please try again or check your browser settings.',
+        theme: 'red',
+        duration: 4000,
+      });
+    }
+  };
+
+  const handleUnsubscribe = async () => {
+    if (!window.OneSignal) {
+      console.error("OneSignal is not initialized");
+      return;
+    }
+
+    try {
+      await window.OneSignal.User.PushSubscription.optOut();
+      localStorage.removeItem("notificationSubscription");
+      
+      addNotification({
+        title: 'Unsubscribed',
+        message: 'You have been unsubscribed from notifications.',
+        theme: 'light',
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error("Error unsubscribing from notifications:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -414,7 +531,7 @@ export default function OneSignal() {
             <CardDescription>Select the type of notifications you'd like to receive</CardDescription>
           </CardHeader>
           <CardContent>
-                       <RadioGroup value={selectedCategory || ""} onValueChange={handleCategoryChange} className="space-y-4">
+            <RadioGroup value={selectedCategory || ""} onValueChange={handleCategoryChange} className="space-y-4">
               {categories.map((category) => (
                 <div
                   key={category.id}
@@ -432,18 +549,80 @@ export default function OneSignal() {
           </CardContent>
         </Card>
 
+        {/* Subscription Status Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Notification Status</CardTitle>
+            <CardDescription>
+              {oneSignalState.isLoading ? "Checking notification status..." : 
+               oneSignalState.isSubscribed ? "You are currently subscribed to notifications" : 
+               "Enable notifications to stay updated"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {!oneSignalState.isLoading && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Push Notifications</span>
+                    <span className={`text-sm ${oneSignalState.isSubscribed ? 'text-green-600' : 'text-gray-500'}`}>
+                      {oneSignalState.isSubscribed ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                  
+                  {selectedCategory && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Selected Category</span>
+                      <span className="text-sm text-blue-600">
+                        {categories.find(c => c.id === selectedCategory)?.name || 'None'}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="pt-4">
+                    {!oneSignalState.isSubscribed ? (
+                      <button
+                        onClick={handleSubscribe}
+                        disabled={!selectedCategory}
+                        className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
+                          selectedCategory 
+                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {selectedCategory ? 'Enable Notifications' : 'Please select a category first'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleUnsubscribe}
+                        className="w-full py-2 px-4 rounded-md font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+                      >
+                        Disable Notifications
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Debug info - remove in production */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mt-4 p-4 bg-gray-100 rounded text-xs text-gray-600">
-            <p>Debug Info:</p>
-            <p>App ID: {ONE_SIGNAL_APP_ID}</p>
-            <p>User ID: {oneSignalState.userId || 'Not subscribed'}</p>
-            <p>Subscribed: {oneSignalState.isSubscribed ? 'Yes' : 'No'}</p>
-            <p>Permission: {oneSignalState.permission}</p>
-            <p>Selected Category: {selectedCategory || 'None'}</p>
+            <p className="font-semibold mb-2">Debug Info:</p>
+            <div className="space-y-1">
+              <p>App ID: {ONE_SIGNAL_APP_ID}</p>
+              <p>User ID: {oneSignalState.userId || 'Not subscribed'}</p>
+              <p>External ID: {localStorage.getItem('userExternalId') || 'Not set'}</p>
+              <p>Subscribed: {oneSignalState.isSubscribed ? 'Yes' : 'No'}</p>
+              <p>Permission: {oneSignalState.permission}</p>
+              <p>Selected Category: {selectedCategory || 'None'}</p>
+              <p>Initialized: {oneSignalState.isInitialized ? 'Yes' : 'No'}</p>
+              {oneSignalState.error && <p className="text-red-600">Error: {oneSignalState.error}</p>}
+            </div>
           </div>
         )}
-
       </div>
     </div>
   )
