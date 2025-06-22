@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import addNotification from 'react-push-notification'
 
-const ONE_SIGNAL_APP_ID = "a405e5ea-deec-490e-bdc3-38b65b4ec31c"
-
+const ONE_SIGNAL_APP_ID = "e16551ca-db6f-48ea-9145-e32474cbe93a"
 
 const categories = [
   {
@@ -37,8 +36,6 @@ const categories = [
   },
 ]
 
-
-
 // Custom Card Components
 const Card = ({ children, className = "" }) => (
   <div className={`rounded-lg border border-gray-200 bg-white shadow-sm ${className}`}>
@@ -61,7 +58,6 @@ const CardDescription = ({ children }) => (
 const CardContent = ({ children }) => (
   <div className="p-6 pt-0">{children}</div>
 )
-
 
 // Custom Radio Group Components
 const RadioGroup = ({ value, onValueChange, children, className = "" }) => (
@@ -96,7 +92,6 @@ export default function OneSignal() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const initializationRef = useRef(false)
 
-  
   // Load saved category from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("selectedNotificationCategory")
@@ -107,8 +102,6 @@ export default function OneSignal() {
 
   // Initialize OneSignal
   useEffect(() => {
-   
-
     const initializeOneSignal = async () => {
       if (initializationRef.current || window.OneSignalInitialized) {
         // If already initialized, just update the state
@@ -142,10 +135,14 @@ export default function OneSignal() {
               if (isOptedIn && onesignalId) {
                 const savedCategory = localStorage.getItem("selectedNotificationCategory")
                 if (savedCategory) {
-                  await window.OneSignal.User.addTags({
-                    category: savedCategory,
-                    subscribed_at: new Date().toISOString()
-                  })
+                  try {
+                    await window.OneSignal.User.addTags({
+                      category: savedCategory,
+                      subscribed_at: new Date().toISOString()
+                    })
+                  } catch (error) {
+                    console.error("Error setting tags on init:", error)
+                  }
                 }
               }
             }
@@ -255,16 +252,20 @@ export default function OneSignal() {
           if (isOptedIn && onesignalId) {
             const savedCategory = localStorage.getItem("selectedNotificationCategory")
             if (savedCategory) {
-              await OneSignalInstance.User.addTags({
-                category: savedCategory,
-                subscribed_at: new Date().toISOString()
-              })
-              
-              localStorage.setItem("notificationSubscription", JSON.stringify({
-                userId: onesignalId,
-                category: savedCategory,
-                subscribedAt: new Date().toISOString()
-              }))
+              try {
+                await OneSignalInstance.User.addTags({
+                  category: savedCategory,
+                  subscribed_at: new Date().toISOString()
+                })
+                
+                localStorage.setItem("notificationSubscription", JSON.stringify({
+                  userId: onesignalId,
+                  category: savedCategory,
+                  subscribedAt: new Date().toISOString()
+                }))
+              } catch (error) {
+                console.error("Error setting initial tags:", error)
+              }
             }
           }
 
@@ -287,16 +288,20 @@ export default function OneSignal() {
             if (isNowOptedIn && newOnesignalId) {
               const savedCategory = localStorage.getItem("selectedNotificationCategory")
               if (savedCategory) {
-                await OneSignalInstance.User.addTags({
-                  category: savedCategory,
-                  subscribed_at: new Date().toISOString()
-                })
-                
-                localStorage.setItem("notificationSubscription", JSON.stringify({
-                  userId: newOnesignalId,
-                  category: savedCategory,
-                  subscribedAt: new Date().toISOString()
-                }))
+                try {
+                  await OneSignalInstance.User.addTags({
+                    category: savedCategory,
+                    subscribed_at: new Date().toISOString()
+                  })
+                  
+                  localStorage.setItem("notificationSubscription", JSON.stringify({
+                    userId: newOnesignalId,
+                    category: savedCategory,
+                    subscribedAt: new Date().toISOString()
+                  }))
+                } catch (error) {
+                  console.error("Error updating tags on subscription change:", error)
+                }
               }
             } else {
               localStorage.removeItem("notificationSubscription")
@@ -331,13 +336,14 @@ export default function OneSignal() {
       if (oneSignalState.isSubscribed && selectedCategory && oneSignalState.userId && window.OneSignal) {
         try {
           await window.OneSignal.User.addTags({
-                        category: selectedCategory,
+            category: selectedCategory,
             last_updated: new Date().toISOString()
           })
 
           console.log('Tags updated for user:', oneSignalState.userId, { category: selectedCategory })
         } catch (error) {
           console.error("Error updating tags:", error)
+          // Don't show error to user, just log it
         }
         
         localStorage.setItem("notificationSubscription", JSON.stringify({
@@ -350,8 +356,6 @@ export default function OneSignal() {
 
     updateSubscriptionData()
   }, [selectedCategory, oneSignalState.isSubscribed, oneSignalState.userId])
-
- 
 
   const handleCategoryChange = async (categoryId) => {
     setSelectedCategory(categoryId)
@@ -390,12 +394,12 @@ export default function OneSignal() {
           }))
         } catch (error) {
           console.error("Error updating OneSignal tags:", error)
+          // Continue execution, don't break the user experience
         }
       }
     }
   }
 
-  
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl mx-auto space-y-8">
@@ -410,7 +414,7 @@ export default function OneSignal() {
             <CardDescription>Select the type of notifications you'd like to receive</CardDescription>
           </CardHeader>
           <CardContent>
-            <RadioGroup value={selectedCategory || ""} onValueChange={handleCategoryChange} className="space-y-4">
+                       <RadioGroup value={selectedCategory || ""} onValueChange={handleCategoryChange} className="space-y-4">
               {categories.map((category) => (
                 <div
                   key={category.id}
@@ -427,6 +431,18 @@ export default function OneSignal() {
             </RadioGroup>
           </CardContent>
         </Card>
+
+        {/* Debug info - remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 p-4 bg-gray-100 rounded text-xs text-gray-600">
+            <p>Debug Info:</p>
+            <p>App ID: {ONE_SIGNAL_APP_ID}</p>
+            <p>User ID: {oneSignalState.userId || 'Not subscribed'}</p>
+            <p>Subscribed: {oneSignalState.isSubscribed ? 'Yes' : 'No'}</p>
+            <p>Permission: {oneSignalState.permission}</p>
+            <p>Selected Category: {selectedCategory || 'None'}</p>
+          </div>
+        )}
 
       </div>
     </div>
