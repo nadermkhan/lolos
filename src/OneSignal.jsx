@@ -37,11 +37,15 @@ const OneSignal = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false);
   const [permission, setPermission] = useState('default');
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [subscriptionId, setSubscriptionId] = useState(null);
 
   useEffect(() => {
     // Check for Notification API support
     if (!("Notification" in window)) {
       console.error("This browser does not support desktop notification");
+      return;
     } else {
       setPermission(Notification.permission);
     }
@@ -51,85 +55,238 @@ const OneSignal = () => {
 
     // Function to load the OneSignal SDK script
     const loadOneSignalSDK = () => {
+      // Check if SDK is already loaded
+      if (window.OneSignal) {
+        console.log("OneSignal SDK already loaded");
+        initializeOneSignal();
+        return;
+      }
+
       const script = document.createElement('script');
       script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
       script.defer = true;
+      
       script.onload = () => {
-        // Initialize OneSignal using the new v16 syntax
-        window.OneSignalDeferred.push(async function(OneSignal) {
+        console.log("OneSignal SDK script loaded");
+        initializeOneSignal();
+      };
+      
+      script.onerror = (error) => {
+        console.error("Failed to load OneSignal SDK:", error);
+      };
+      
+      document.head.appendChild(script);
+    };
+
+    const initializeOneSignal = () => {
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+          console.log("Initializing OneSignal...");
+          
           await OneSignal.init({
             appId: "02d12db1-1701-46b8-b7ec-4d8b39fcbf99",
             allowLocalhostAsSecureOrigin: true,
+            notifyButton: {
+              enable: false
+            },
+            promptOptions: {
+              slidedown: {
+                prompts: [{
+                  type: "push",
+                  autoPrompt: false
+                }]
+              }
+            }
           });
 
-          // Set up event listeners using the new API
-          OneSignal.Notifications.addEventListener('permissionChange', function(permission) {
-            console.log('New permission state:', permission);
+          console.log("OneSignal initialized successfully");
+
+          // Check and log current state
+          await checkAndLogUserState();
+
+          // Set up event listeners
+          OneSignal.Notifications.addEventListener('permissionChange', async function(permission) {
+            console.log('Permission changed:', permission);
             setPermission(permission ? 'granted' : 'denied');
+            // Recheck user state after permission change
+            setTimeout(() => checkAndLogUserState(), 1000);
           });
 
-          OneSignal.User.PushSubscription.addEventListener('change', function(event) {
+          OneSignal.User.PushSubscription.addEventListener('change', async function(event) {
             console.log("Push subscription changed:", event);
+            if (event.current.optedIn !== undefined) {
+              setIsSubscribed(event.current.optedIn);
+            }
+            if (event.current.id) {
+              setSubscriptionId(event.current.id);
+            }
+            // Check for user ID when subscription changes
+            setTimeout(() => checkAndLogUserState(), 1000);
           });
 
           setIsOneSignalInitialized(true);
-        });
-      };
-      document.head.appendChild(script);
+
+        } catch (error) {
+          console.error("Error initializing OneSignal:", error);
+        }
+      });
+    };
+
+    const checkAndLogUserState = async () => {
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+          const currentUserId = await OneSignal.User.onesignalId;
+          const currentSubscriptionId = await OneSignal.User.PushSubscription.id;
+          const currentOptedIn = await OneSignal.User.PushSubscription.optedIn;
+          const currentPermission = await OneSignal.Notifications.permission;
+          const currentTags = await OneSignal.User.getTags();
+
+          console.log("Current OneSignal State:", {
+            userId: currentUserId,
+            subscriptionId: currentSubscriptionId,
+            optedIn: currentOptedIn,
+            permission: currentPermission,
+            tags: currentTags
+          });
+
+          setUserId(currentUserId);
+          setSubscriptionId(currentSubscriptionId);
+          setIsSubscribed(currentOptedIn);
+          setPermission(currentPermission ? 'granted' : 'denied');
+
+          // If we have a user ID and saved category, apply tags
+          if (currentUserId && currentOptedIn) {
+            const savedCategory = localStorage.getItem('userSelectedCategory');
+            if (savedCategory) {
+              console.log("Applying saved category:", savedCategory);
+              await applyUserTags(savedCategory);
+            }
+          }
+        } catch (error) {
+          console.error("Error checking user state:", error);
+        }
+      });
     };
 
     loadOneSignalSDK();
 
-    // Load saved category from localStorage on component mount
+    // Load saved category from localStorage
     const savedCategory = localStorage.getItem('userSelectedCategory');
     if (savedCategory) {
       setSelectedCategory(savedCategory);
     }
   }, []);
 
-  // This function handles the logic when a user selects a category
-  const handleCategorySelect = (category) => {
+  const applyUserTags = async (categoryId) => {
+    return new Promise((resolve) => {
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+          // Double-check user ID
+          const currentUserId = await OneSignal.User.onesignalId;
+          console.log("Applying tags for user:", currentUserId);
+          
+          if (!currentUserId) {
+            console.log("No user ID available yet");
+            resolve(false);
+            return;
+          }
+
+          // Get current tags before modification
+          const currentTags = await OneSignal.User.getTags();
+          console.log("Current tags before update:", currentTags);
+
+          // Remove all category tags
+          const tagsToRemove = categories.map(c => c.id).filter(id => id !== categoryId);
+          if (tagsToRemove.length > 0) {
+            console.log("Removing tags:", tagsToRemove);
+            await OneSignal.User.removeTags(tagsToRemove);
+          }
+
+          // Add the selected category tag
+          console.log(`Adding tag: ${categoryId} = true`);
+          await OneSignal.User.addTag(categoryId, "true");
+
+          // Verify tags were applied
+          setTimeout(async () => {
+            const updatedTags = await OneSignal.User.getTags();
+            console.log("Tags after update:", updatedTags);
+            resolve(true);
+          }, 500);
+
+        } catch (error) {
+          console.error("Error applying tags:", error);
+          resolve(false);
+        }
+      });
+    });
+  };
+
+  const handleCategorySelect = async (category) => {
     console.log("Selected category:", category.name);
 
     // Update state and localStorage
     setSelectedCategory(category.id);
     localStorage.setItem('userSelectedCategory', category.id);
 
-    // Send a local, in-browser notification to confirm the change
-    if (permission === 'granted') {
-      new Notification(`Kategorie geändert: ${category.name}`, {
-        body: category.txt,
-        tag: 'category-change-notification'
-      });
+    // Send a local notification if permitted
+    if (permission === 'granted' && "Notification" in window) {
+      try {
+        new Notification(`Kategorie geändert: ${category.name}`, {
+          body: category.txt,
+          tag: 'category-change-notification'
+        });
+      } catch (error) {
+        console.error("Error showing notification:", error);
+      }
     }
 
-    // Tag the user in OneSignal for segmentation using the new v16 API
-    if (isOneSignalInitialized) {
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-          // Remove all category tags
-          const tagsToRemove = categories.map(c => c.id);
-          console.log("Removing tags:", tagsToRemove);
-          await OneSignal.User.removeTags(tagsToRemove);
-
-          // Add the selected category tag
-          console.log(`Adding tag: ${category.id}`);
-          await OneSignal.User.addTag(category.id, "true");
-        } catch (error) {
-          console.error("Error updating tags:", error);
-        }
-      });
+    // Apply tags if we have a user ID
+    if (isOneSignalInitialized && userId) {
+      const success = await applyUserTags(category.id);
+      if (!success) {
+        console.log("Failed to apply tags, will retry when user is available");
+      }
     } else {
-      console.warn("OneSignal SDK not initialized yet. Cannot send tag.");
+      console.log("Waiting for user to be created. Current state:", {
+        initialized: isOneSignalInitialized,
+        userId: userId,
+        subscribed: isSubscribed
+      });
     }
   };
 
   const handleSubscribeClick = () => {
     if (isOneSignalInitialized) {
       window.OneSignalDeferred.push(async function(OneSignal) {
-        console.log('Requesting notification permission.');
-        // Use the new v16 API to request permission
-        await OneSignal.Notifications.requestPermission();
+        try {
+          console.log('Requesting notification permission...');
+          
+          // Request permission
+          await OneSignal.Notifications.requestPermission();
+          
+          // Wait for subscription to be created and then apply tags
+          const checkInterval = setInterval(async () => {
+            const currentUserId = await OneSignal.User.onesignalId;
+            const currentOptedIn = await OneSignal.User.PushSubscription.optedIn;
+            
+            console.log("Checking subscription status:", { userId: currentUserId, optedIn: currentOptedIn });
+            
+            if (currentUserId && currentOptedIn) {
+              clearInterval(checkInterval);
+              const savedCategory = localStorage.getItem('userSelectedCategory');
+              if (savedCategory) {
+                console.log("User subscribed, applying saved category:", savedCategory);
+                await applyUserTags(savedCategory);
+              }
+            }
+          }, 1000);
+
+          // Stop checking after 10 seconds
+          setTimeout(() => clearInterval(checkInterval), 10000);
+          
+        } catch (error) {
+          console.error("Error requesting permission:", error);
+        }
       });
     }
   };
@@ -140,17 +297,27 @@ const OneSignal = () => {
         <header className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl font-bold text-cyan-400 mb-2">Benachrichtigungen verwalten</h1>
           <p className="text-lg text-gray-300">Wählen Sie eine Kategorie, um relevante Benachrichtigungen zu erhalten.</p>
+          {/* Debug info - remove in production */}
+          <div className="text-xs text-gray-500 mt-2">
+            User ID: {userId || 'none'} | Subscribed: {isSubscribed ? 'yes' : 'no'}
+          </div>
         </header>
 
-        {permission !== 'granted' && (
+        {(!isSubscribed || permission !== 'granted') && (
           <div className="bg-yellow-800 bg-opacity-50 border border-yellow-600 text-yellow-200 px-4 py-3 rounded-lg relative mb-6 text-center">
             <strong className="font-bold block">Achtung!</strong>
-            <span className="block sm:inline"> Benachrichtigungen sind nicht aktiviert. Klicken Sie hier, um sie zu abonnieren.</span>
-            <button 
-              onClick={handleSubscribeClick} 
-              className="mt-2 sm:mt-0 sm:ml-4 inline-block bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
-              Abonnieren
-            </button>
+            <span className="block sm:inline">
+              {!isOneSignalInitialized 
+                ? "OneSignal wird geladen..." 
+                : "Benachrichtigungen sind nicht aktiviert. Klicken Sie hier, um sie zu abonnieren."}
+            </span>
+            {isOneSignalInitialized && (
+              <button 
+                onClick={handleSubscribeClick} 
+                className="mt-2 sm:mt-0 sm:ml-4 inline-block bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
+                Abonnieren
+              </button>
+            )}
           </div>
         )}
 
