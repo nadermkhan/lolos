@@ -302,12 +302,7 @@ const OneSignal = () => {
     <div className="bg-gray-900 text-white min-h-screen p-4 sm:p-6 md:p-8 font-sans">
       <div className="max-w-4xl mx-auto">
         <header className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-bold text-cyan-400 mb-2">Benachrichtigungen verwalten</h1>
-          <p className="text-lg text-gray-300">Wählen Sie eine Kategorie, um relevante Benachrichtigungen zu erhalten.</p>
-          {/* Debug info - remove in production */}
-          <div className="text-xs text-gray-500 mt-2">
-            User ID: {userId || 'none'} | Subscribed: {isSubscribed ? 'yes' : 'no'}
-          </div>
+         
         </header>
 
         {(!isSubscribed || permission !== 'granted') && (
@@ -352,7 +347,7 @@ const OneSignal = () => {
         </main>
         
         <footer className="text-center mt-10 text-gray-500 text-sm">
-          <p>Powered by OneSignal</p>
+         
         </footer>
       </div>
     </div>
