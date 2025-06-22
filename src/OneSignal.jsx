@@ -176,48 +176,54 @@ const OneSignal = () => {
   }, []);
 
   const applyUserTags = async (categoryId) => {
-    return new Promise((resolve) => {
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-          // Double-check user ID
-          const currentUserId = await OneSignal.User.onesignalId;
-          console.log("Applying tags for user:", currentUserId);
-          
-          if (!currentUserId) {
-            console.log("No user ID available yet");
-            resolve(false);
-            return;
-          }
+  return new Promise((resolve) => {
+    window.OneSignalDeferred.push(async function(OneSignal) {
+      try {
+        // Double-check user ID
+        const currentUserId = await OneSignal.User.onesignalId;
+        console.log("Applying tags for user:", currentUserId);
 
-          // Get current tags before modification
-          const currentTags = await OneSignal.User.getTags();
-          console.log("Current tags before update:", currentTags);
-
-          // Remove all category tags
-          const tagsToRemove = categories.map(c => c.id).filter(id => id !== categoryId);
-          if (tagsToRemove.length > 0) {
-            console.log("Removing tags:", tagsToRemove);
-            await OneSignal.User.removeTags(tagsToRemove);
-          }
-
-          // Add the selected category tag
-          console.log(`Adding tag: ${categoryId} = true`);
-          await OneSignal.User.addTag(categoryId, "true");
-
-          // Verify tags were applied
-          setTimeout(async () => {
-            const updatedTags = await OneSignal.User.getTags();
-            console.log("Tags after update:", updatedTags);
-            resolve(true);
-          }, 500);
-
-        } catch (error) {
-          console.error("Error applying tags:", error);
+        if (!currentUserId) {
+          console.log("No user ID available yet");
           resolve(false);
+          return;
         }
-      });
+
+        // Get current tags before modification
+        const currentTags = await OneSignal.User.getTags();
+        console.log("Current tags before update:", currentTags);
+
+        // Remove all category tags one by one to avoid JSON parsing issues
+        for (const category of categories) {
+          if (category.id !== categoryId) {
+            try {
+              console.log(`Removing tag: ${category.id}`);
+              await OneSignal.User.removeTag(category.id);
+            } catch (err) {
+              console.warn(`Failed to remove tag ${category.id}:`, err);
+            }
+          }
+        }
+
+        // Add the selected category tag
+        console.log(`Adding tag: ${categoryId} = true`);
+        await OneSignal.User.addTag(categoryId, "true");
+
+        // Verify tags were applied
+        setTimeout(async () => {
+          const updatedTags = await OneSignal.User.getTags();
+          console.log("Tags after update:", updatedTags);
+          resolve(true);
+        }, 500);
+
+      } catch (error) {
+        console.error("Error applying tags:", error);
+        resolve(false);
+      }
     });
-  };
+  });
+};
+
 
   const handleCategorySelect = async (category) => {
      console.log("Selected category object:", category);
