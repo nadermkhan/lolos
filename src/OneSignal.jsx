@@ -1,39 +1,36 @@
 import React, { useState, useEffect } from 'react';
 
-// NOTE: The 'react-push-notification' library has been removed.
-// We will use the browser's native Notification API for local feedback.
-
 const categories = [
- {
-   id: "weekly_report",
-   name: "Wochenbericht",
-   description: "Latest news in technology and innovation.",
-   txt: "Ihr Wochenrückblick aus dem Rathaus! Jeden Freitag erhalten Sie unseren Wochenbericht kompakt zusammengefasst, was die Verwaltung diese Woche im Ort bewegt hat.",
- },
- {
-   id: "townhall_news",
-   name: "Rathaus Aktuell",
-   description: "Announcements for our new products.",
-   txt: "Hier erhalten Sie alle allgemeinen Informationen aus der Verwaltung. Wir informieren Sie über Schließtage, geänderte Öffnungszeiten, bevorstehende Gemeinderatssitzungen und mehr.",
- },
- {
-   id: "emergencies",
-   name: "Notfälle",
-   description: "Exclusive discounts and promotions.",
-   txt: "Dieser Kanal ist für wichtige Informationen im Notfall oder bei Katastrophen. Ob Unwetterwarnungen, Hochwasser oder andere akute Gefahren.",
- },
- {
-   id: "closures_and_disruptions",
-   name: "Sperrungen & Störungen",
-   description: "Updates and news from our team.",
-   txt: "Hier gibt es aktuelle Meldungen zur öffentlichen Versorgung und zum Verkehr. Sofortige Infos zu Straßensperrungen, wichtigen Baustellen und anderen Beeinträchtigungen.",
- },
- {
-   id: "events",
-   name: "Veranstaltungen",
-   description: "A roundup of the weeks best content.",
-   txt: "Was ist diese Woche los in Laaber? Jeden Montag liefern wir Ihnen die Veranstaltungen für die kommende Woche!",
- },
+  {
+    id: "weekly_report",
+    name: "Wochenbericht",
+    description: "Latest news in technology and innovation.",
+    txt: "Ihr Wochenrückblick aus dem Rathaus! Jeden Freitag erhalten Sie unseren Wochenbericht kompakt zusammengefasst, was die Verwaltung diese Woche im Ort bewegt hat.",
+  },
+  {
+    id: "townhall_news",
+    name: "Rathaus Aktuell",
+    description: "Announcements for our new products.",
+    txt: "Hier erhalten Sie alle allgemeinen Informationen aus der Verwaltung. Wir informieren Sie über Schließtage, geänderte Öffnungszeiten, bevorstehende Gemeinderatssitzungen und mehr.",
+  },
+  {
+    id: "emergencies",
+    name: "Notfälle",
+    description: "Exclusive discounts and promotions.",
+    txt: "Dieser Kanal ist für wichtige Informationen im Notfall oder bei Katastrophen. Ob Unwetterwarnungen, Hochwasser oder andere akute Gefahren.",
+  },
+  {
+    id: "closures_and_disruptions",
+    name: "Sperrungen & Störungen",
+    description: "Updates and news from our team.",
+    txt: "Hier gibt es aktuelle Meldungen zur öffentlichen Versorgung und zum Verkehr. Sofortige Infos zu Straßensperrungen, wichtigen Baustellen und anderen Beeinträchtigungen.",
+  },
+  {
+    id: "events",
+    name: "Veranstaltungen",
+    description: "A roundup of the weeks best content.",
+    txt: "Was ist diese Woche los in Laaber? Jeden Montag liefern wir Ihnen die Veranstaltungen für die kommende Woche!",
+  },
 ];
 
 const OneSignal = () => {
@@ -41,38 +38,38 @@ const OneSignal = () => {
   const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false);
   const [permission, setPermission] = useState('default');
 
-  // Effect to initialize OneSignal and load saved category
   useEffect(() => {
     // Check for Notification API support
     if (!("Notification" in window)) {
       console.error("This browser does not support desktop notification");
     } else {
-        setPermission(Notification.permission);
+      setPermission(Notification.permission);
     }
-      
+
+    // Initialize OneSignalDeferred
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+
     // Function to load the OneSignal SDK script
     const loadOneSignalSDK = () => {
       const script = document.createElement('script');
-      script.src = "https://cdn.onesignal.com/sdks/OneSignalSDK.js";
-      script.async = true;
+      script.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+      script.defer = true;
       script.onload = () => {
-        // Use window.OneSignal as it's loaded globally
-        const OneSignal = window.OneSignal || [];
-        OneSignal.push(function() {
-          OneSignal.init({
-            // IMPORTANT: Replace with your actual OneSignal App ID from your dashboard
-            appId: "02d12db1-1701-46b8-b7ec-4d8b39fcbf99", 
+        // Initialize OneSignal using the new v16 syntax
+        window.OneSignalDeferred.push(async function(OneSignal) {
+          await OneSignal.init({
+            appId: "02d12db1-1701-46b8-b7ec-4d8b39fcbf99",
             allowLocalhostAsSecureOrigin: true,
           });
-          
-          OneSignal.on('subscriptionChange', function(isSubscribed) {
-              console.log("The user's subscription state is now:", isSubscribed);
+
+          // Set up event listeners using the new API
+          OneSignal.Notifications.addEventListener('permissionChange', function(permission) {
+            console.log('New permission state:', permission);
+            setPermission(permission ? 'granted' : 'denied');
           });
-          
-          OneSignal.on('notificationPermissionChange', function(permissionChange) {
-            var currentPermission = permissionChange.to;
-            console.log('New permission state:', currentPermission);
-            setPermission(currentPermission);
+
+          OneSignal.User.PushSubscription.addEventListener('change', function(event) {
+            console.log("Push subscription changed:", event);
           });
 
           setIsOneSignalInitialized(true);
@@ -88,8 +85,7 @@ const OneSignal = () => {
     if (savedCategory) {
       setSelectedCategory(savedCategory);
     }
-
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []);
 
   // This function handles the logic when a user selects a category
   const handleCategorySelect = (category) => {
@@ -99,40 +95,43 @@ const OneSignal = () => {
     setSelectedCategory(category.id);
     localStorage.setItem('userSelectedCategory', category.id);
 
-    // Send a local, in-browser notification to confirm the change using the native Notification API
+    // Send a local, in-browser notification to confirm the change
     if (permission === 'granted') {
       new Notification(`Kategorie geändert: ${category.name}`, {
-          body: category.txt,
-          tag: 'category-change-notification' // Tag prevents multiple notifications from stacking
+        body: category.txt,
+        tag: 'category-change-notification'
       });
     }
 
-    // Tag the user in OneSignal for segmentation
+    // Tag the user in OneSignal for segmentation using the new v16 API
     if (isOneSignalInitialized) {
-        const OneSignal = window.OneSignal;
-        const tagsToRemove = categories.map(c => c.id);
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        try {
+          // Remove all category tags
+          const tagsToRemove = categories.map(c => c.id);
+          console.log("Removing tags:", tagsToRemove);
+          await OneSignal.User.removeTags(tagsToRemove);
 
-        // CORRECTED: Use the array-based command syntax for SDK methods
-        // This queues the commands correctly instead of executing them in a problematic scope.
-        console.log("Queuing removal of tags:", tagsToRemove);
-        OneSignal.push(["removeTags", tagsToRemove]);
-
-        console.log(`Queuing sending of tag: ${category.id}`);
-        OneSignal.push(["sendTag", category.id, "true"]);
-
+          // Add the selected category tag
+          console.log(`Adding tag: ${category.id}`);
+          await OneSignal.User.addTag(category.id, "true");
+        } catch (error) {
+          console.error("Error updating tags:", error);
+        }
+      });
     } else {
-        console.warn("OneSignal SDK not initialized yet. Cannot send tag.");
+      console.warn("OneSignal SDK not initialized yet. Cannot send tag.");
     }
   };
-  
+
   const handleSubscribeClick = () => {
-      const OneSignal = window.OneSignal;
-      if (isOneSignalInitialized && OneSignal) {
-          OneSignal.push(function() {
-              console.log('Showing prompt to subscribe.');
-              OneSignal.showSlidedownPrompt();
-          });
-      }
+    if (isOneSignalInitialized) {
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        console.log('Requesting notification permission.');
+        // Use the new v16 API to request permission
+        await OneSignal.Notifications.requestPermission();
+      });
+    }
   };
 
   return (
@@ -144,15 +143,15 @@ const OneSignal = () => {
         </header>
 
         {permission !== 'granted' && (
-             <div className="bg-yellow-800 bg-opacity-50 border border-yellow-600 text-yellow-200 px-4 py-3 rounded-lg relative mb-6 text-center">
-                <strong className="font-bold block">Achtung!</strong>
-                <span className="block sm:inline"> Benachrichtigungen sind nicht aktiviert. Klicken Sie hier, um sie zu abonnieren.</span>
-                <button 
-                    onClick={handleSubscribeClick} 
-                    className="mt-2 sm:mt-0 sm:ml-4 inline-block bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
-                    Abonnieren
-                </button>
-             </div>
+          <div className="bg-yellow-800 bg-opacity-50 border border-yellow-600 text-yellow-200 px-4 py-3 rounded-lg relative mb-6 text-center">
+            <strong className="font-bold block">Achtung!</strong>
+            <span className="block sm:inline"> Benachrichtigungen sind nicht aktiviert. Klicken Sie hier, um sie zu abonnieren.</span>
+            <button 
+              onClick={handleSubscribeClick} 
+              className="mt-2 sm:mt-0 sm:ml-4 inline-block bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300">
+              Abonnieren
+            </button>
+          </div>
         )}
 
         <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -170,16 +169,16 @@ const OneSignal = () => {
               <h2 className="text-2xl font-semibold text-cyan-400 mb-3">{category.name}</h2>
               <p className="text-gray-300">{category.txt}</p>
               {selectedCategory === category.id && (
-                  <div className="mt-4 text-sm font-bold text-green-400">
-                    ✓ Aktiviert
-                  </div>
+                <div className="mt-4 text-sm font-bold text-green-400">
+                  ✓ Aktiviert
+                </div>
               )}
             </div>
           ))}
         </main>
         
         <footer className="text-center mt-10 text-gray-500 text-sm">
-            <p>Powered by OneSignal</p>
+          <p>Powered by OneSignal</p>
         </footer>
       </div>
     </div>
