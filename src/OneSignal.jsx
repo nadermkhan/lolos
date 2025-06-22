@@ -3,31 +3,31 @@ import React, { useState, useEffect } from 'react';
 const categories = [
   {
     id: "weekly_report",
-    name: "Wochenbericht",
+    name: "Weekly Report",
     description: "Latest news in technology and innovation.",
     txt: "Ihr Wochenrückblick aus dem Rathaus! Jeden Freitag erhalten Sie unseren Wochenbericht kompakt zusammengefasst, was die Verwaltung diese Woche im Ort bewegt hat.",
   },
   {
     id: "townhall_news",
-    name: "Rathaus Aktuell",
+    name: "Townhall News",
     description: "Announcements for our new products.",
     txt: "Hier erhalten Sie alle allgemeinen Informationen aus der Verwaltung. Wir informieren Sie über Schließtage, geänderte Öffnungszeiten, bevorstehende Gemeinderatssitzungen und mehr.",
   },
   {
     id: "emergencies",
-    name: "Notfälle",
+    name: "Emergencies",
     description: "Exclusive discounts and promotions.",
     txt: "Dieser Kanal ist für wichtige Informationen im Notfall oder bei Katastrophen. Ob Unwetterwarnungen, Hochwasser oder andere akute Gefahren.",
   },
   {
     id: "closures_and_disruptions",
-    name: "Sperrungen & Störungen",
+    name: "Closures and disruptions",
     description: "Updates and news from our team.",
     txt: "Hier gibt es aktuelle Meldungen zur öffentlichen Versorgung und zum Verkehr. Sofortige Infos zu Straßensperrungen, wichtigen Baustellen und anderen Beeinträchtigungen.",
   },
   {
     id: "events",
-    name: "Veranstaltungen",
+    name: "Events",
     description: "A roundup of the weeks best content.",
     txt: "Was ist diese Woche los in Laaber? Jeden Montag liefern wir Ihnen die Veranstaltungen für die kommende Woche!",
   },
