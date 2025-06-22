@@ -3,7 +3,7 @@ import { Bell, CheckCircle, Loader2, AlertCircle, XCircle } from "lucide-react"
 import addNotification from 'react-push-notification'
 
 const ONE_SIGNAL_APP_ID = "a405e5ea-deec-490e-bdc3-38b65b4ec31c"
-const CONFIG_URL = ""
+
 
 const categories = [
   {
@@ -120,10 +120,6 @@ const Label = ({ htmlFor, children, className = "" }) => (
 )
 
 export default function OneSignal() {
-  const [appConfig, setAppConfig] = useState(null)
-  const [configLoading, setConfigLoading] = useState(true)
- // const [configError, setConfigError] = useState(null)
-  const [lastConfigCheck, setLastConfigCheck] = useState(null)
   const [oneSignalState, setOneSignalState] = useState({
     isLoading: true,
     isInitialized: false,
@@ -135,65 +131,7 @@ export default function OneSignal() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const initializationRef = useRef(false)
 
-  // Fetch remote config
-  useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        setConfigLoading(true)
-
-        const timestamp = Date.now()
-        const random = Math.random().toString(36).substring(7)
-        const urlWithParams = `${CONFIG_URL}?t=${timestamp}&r=${random}`
-        
-        const response = await fetch(urlWithParams, {
-          method: 'GET',
-          cache: 'no-cache',
-          mode: 'cors',
-        })
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch config: ${response.status}`)
-        }
-        
-        const data = await response.json()
-        
-        setAppConfig(data)
-        setConfigError(null)
-        setLastConfigCheck(new Date())
-        
-        console.log('Config fetched:', new Date().toISOString(), data)
-      } catch (error) {
-        console.error("Error fetching config:", error)
-        setConfigError("Failed to load app configuration")
-        setAppConfig({ appEnabled: true })
-      } finally {
-        setConfigLoading(false)
-      }
-    }
-
-    fetchConfig()
-    const interval = setInterval(fetchConfig, 30000)
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchConfig()
-      }
-    }
-
-    const handleFocus = () => {
-      fetchConfig()
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
-
-    return () => {
-      clearInterval(interval)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-    }
-  }, [])
-
+  
   // Load saved category from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("selectedNotificationCategory")
@@ -204,9 +142,7 @@ export default function OneSignal() {
 
   // Initialize OneSignal
   useEffect(() => {
-    if (!appConfig?.appEnabled || configLoading) {
-      return
-    }
+   
 
     const initializeOneSignal = async () => {
       if (initializationRef.current || window.OneSignalInitialized) {
@@ -422,7 +358,7 @@ export default function OneSignal() {
     }
 
     initializeOneSignal()
-  }, [appConfig, configLoading])
+  }, [])
 
   // Update subscription data when state changes
   useEffect(() => {
@@ -513,144 +449,7 @@ export default function OneSignal() {
     }
   }
 
-  // Show loading state while checking config
-  if (configLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="flex items-center space-x-2 text-gray-500">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading configuration...</span>
-        </div>
-      </div>
-    )
-  }
-
-  // Show maintenance message if app is disabled
-  if (appConfig && !appConfig.appEnabled) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <XCircle className="h-6 w-6 text-red-600" />
-              <CardTitle>Service Unavailable</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-gray-500">
-              {appConfig.maintenanceMessage || "The notification service is temporarily unavailable. Please try again later."}
-            </p>
-            {appConfig.lastUpdated && (
-              <p className="text-sm text-gray-500 mt-4">
-                Last updated: {new Date(appConfig.lastUpdated).toLocaleString()}
-              </p>
-            )}
-            {lastConfigCheck && (
-              <p className="text-xs text-gray-500 mt-2">
-                Config checked: {lastConfigCheck.toLocaleTimeString()}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  // const renderStatus = () => {
-  // //   if (oneSignalState.isLoading) {
-  // //     return (
-  // //       <div className="flex items-center justify-center space-x-2 text-gray-500">
-  // //         <Loader2 className="h-4 w-4 animate-spin" />
-  // //         <span>Initializing Notification Service...</span>
-  // //       </div>
-  // //     )
-  // //   }
-
-  //   // if (oneSignalState.error) {
-  //   //   return (
-  //   //     <Alert variant="destructive">
-  //   //       <div className="flex items-start">
-  //   //         <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 mr-2" />
-  //   //         <div className="flex-1">
-  //   //           <AlertTitle className="text-red-600">Error</AlertTitle>
-  //   //           <AlertDescription className="text-red-700">
-  //   //             {oneSignalState.error}
-  //   //             <div className="mt-2 text-sm">
-  //   //               <strong>Troubleshooting:</strong>
-  //   //               <ul className="list-disc ml-4 mt-1">
-  //   //                 <li>Make sure you're accessing the site via HTTPS</li>
-  //   //                 <li>Check if service worker files are accessible</li>
-  //   //                 <li>Try refreshing the page</li>
-  //   //               </ul>
-  //   //             </div>
-  //   //           </AlertDescription>
-  //   //         </div>
-  //   //       </div>
-  //   //     </Alert>
-  //   //   )
-  //   // }
-
-  //   // if (oneSignalState.permission === "denied") {
-  //   //   return (
-  //   //     <Alert variant="destructive">
-  //   //       <AlertTitle className="text-red-600">Notifications Blocked</AlertTitle>
-  //   //       <AlertDescription className="text-red-700">
-  //   //         You have blocked notifications. Please enable them in your browser settings:
-  //   //         <ol className="mt-2 ml-4 list-decimal text-sm">
-  //   //           <li>Click the lock icon in your address bar</li>
-  //   //           <li>Find "Notifications" in the permissions</li>
-  //   //           <li>Change it to "Allow"</li>
-  //   //           <li>Refresh this page</li>
-  //   //         </ol>
-  //   //       </AlertDescription>
-  //   //     </Alert>
-  //   //   )
-  //   // }
-
-  //   if (!oneSignalState.isSubscribed) {
-  //     return (
-  //       <div className="space-y-4">
-  //         <p className="text-center text-gray-500">
-  //           {selectedCategory
-  //             ? "Click below to enable notifications for your selected category"
-  //             : "Please select a category first, then enable notifications"}
-  //         </p>
-  //         <Button
-  //           onClick={handleSubscribe}
-  //           disabled={!selectedCategory || !oneSignalState.isInitialized}
-  //           className="w-full"
-  //           size="lg"
-  //         >
-  //           <Bell className="mr-2 h-4 w-4" />
-  //           Enable Notifications
-  //         </Button>
-  //       </div>
-  //     )
-  //   }
-
-  //   return (
-  //     <Alert className="border-green-600 bg-green-50">
-  //       <div className="flex items-start">
-  //         <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2" />
-  //         <div className="flex-1">
-  //           <AlertTitle className="text-green-600">Notifications Enabled!</AlertTitle>
-  //           <AlertDescription className="text-gray-600">
-  //             <div>Your User ID: {oneSignalState.userId || "Loading..."}</div>
-  //             <div>Category: {categories.find(c => c.id === selectedCategory)?.name || "None selected"}</div>
-  //             <div className="mt-2 text-xs">
-  //               Push notifications will be delivered even when the website is closed, as long as you have internet connectivity.
-  //             </div>
-  //             {/* Debug info - remove in production */}
-  //             <div className="mt-2 text-xs opacity-50">
-  //               Debug: Subscribed={oneSignalState.isSubscribed.toString()}, Permission={oneSignalState.permission}
-  //             </div>
-  //           </AlertDescription>
-  //         </div>
-  //       </div>
-  //     </Alert>
-  //   )
-  // }
-
+  
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl mx-auto space-y-8">
