@@ -220,7 +220,10 @@ const OneSignal = () => {
   };
 
   const handleCategorySelect = async (category) => {
-    console.log("Selected category:", category.name);
+     console.log("Selected category object:", category);
+    console.log("Category ID to be stored:", category.id);
+    console.log("Category name:", category.name);
+
 
     // Update state and localStorage
     setSelectedCategory(category.id);
