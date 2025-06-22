@@ -187,3 +187,4 @@ const OneSignal = () => {
   );
 };
 
+export default OneSignal
