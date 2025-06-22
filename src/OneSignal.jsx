@@ -122,7 +122,7 @@ const Label = ({ htmlFor, children, className = "" }) => (
 export default function OneSignal() {
   const [appConfig, setAppConfig] = useState(null)
   const [configLoading, setConfigLoading] = useState(true)
-  const [configError, setConfigError] = useState(null)
+ // const [configError, setConfigError] = useState(null)
   const [lastConfigCheck, setLastConfigCheck] = useState(null)
   const [oneSignalState, setOneSignalState] = useState({
     isLoading: true,
@@ -556,100 +556,100 @@ export default function OneSignal() {
     )
   }
 
-  const renderStatus = () => {
-    if (oneSignalState.isLoading) {
-      return (
-        <div className="flex items-center justify-center space-x-2 text-gray-500">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Initializing Notification Service...</span>
-        </div>
-      )
-    }
+  // const renderStatus = () => {
+  // //   if (oneSignalState.isLoading) {
+  // //     return (
+  // //       <div className="flex items-center justify-center space-x-2 text-gray-500">
+  // //         <Loader2 className="h-4 w-4 animate-spin" />
+  // //         <span>Initializing Notification Service...</span>
+  // //       </div>
+  // //     )
+  // //   }
 
-    if (oneSignalState.error) {
-      return (
-        <Alert variant="destructive">
-          <div className="flex items-start">
-            <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 mr-2" />
-            <div className="flex-1">
-              <AlertTitle className="text-red-600">Error</AlertTitle>
-              <AlertDescription className="text-red-700">
-                {oneSignalState.error}
-                <div className="mt-2 text-sm">
-                  <strong>Troubleshooting:</strong>
-                  <ul className="list-disc ml-4 mt-1">
-                    <li>Make sure you're accessing the site via HTTPS</li>
-                    <li>Check if service worker files are accessible</li>
-                    <li>Try refreshing the page</li>
-                  </ul>
-                </div>
-              </AlertDescription>
-            </div>
-          </div>
-        </Alert>
-      )
-    }
+  //   // if (oneSignalState.error) {
+  //   //   return (
+  //   //     <Alert variant="destructive">
+  //   //       <div className="flex items-start">
+  //   //         <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 mr-2" />
+  //   //         <div className="flex-1">
+  //   //           <AlertTitle className="text-red-600">Error</AlertTitle>
+  //   //           <AlertDescription className="text-red-700">
+  //   //             {oneSignalState.error}
+  //   //             <div className="mt-2 text-sm">
+  //   //               <strong>Troubleshooting:</strong>
+  //   //               <ul className="list-disc ml-4 mt-1">
+  //   //                 <li>Make sure you're accessing the site via HTTPS</li>
+  //   //                 <li>Check if service worker files are accessible</li>
+  //   //                 <li>Try refreshing the page</li>
+  //   //               </ul>
+  //   //             </div>
+  //   //           </AlertDescription>
+  //   //         </div>
+  //   //       </div>
+  //   //     </Alert>
+  //   //   )
+  //   // }
 
-    if (oneSignalState.permission === "denied") {
-      return (
-        <Alert variant="destructive">
-          <AlertTitle className="text-red-600">Notifications Blocked</AlertTitle>
-          <AlertDescription className="text-red-700">
-            You have blocked notifications. Please enable them in your browser settings:
-            <ol className="mt-2 ml-4 list-decimal text-sm">
-              <li>Click the lock icon in your address bar</li>
-              <li>Find "Notifications" in the permissions</li>
-              <li>Change it to "Allow"</li>
-              <li>Refresh this page</li>
-            </ol>
-          </AlertDescription>
-        </Alert>
-      )
-    }
+  //   // if (oneSignalState.permission === "denied") {
+  //   //   return (
+  //   //     <Alert variant="destructive">
+  //   //       <AlertTitle className="text-red-600">Notifications Blocked</AlertTitle>
+  //   //       <AlertDescription className="text-red-700">
+  //   //         You have blocked notifications. Please enable them in your browser settings:
+  //   //         <ol className="mt-2 ml-4 list-decimal text-sm">
+  //   //           <li>Click the lock icon in your address bar</li>
+  //   //           <li>Find "Notifications" in the permissions</li>
+  //   //           <li>Change it to "Allow"</li>
+  //   //           <li>Refresh this page</li>
+  //   //         </ol>
+  //   //       </AlertDescription>
+  //   //     </Alert>
+  //   //   )
+  //   // }
 
-    if (!oneSignalState.isSubscribed) {
-      return (
-        <div className="space-y-4">
-          <p className="text-center text-gray-500">
-            {selectedCategory
-              ? "Click below to enable notifications for your selected category"
-              : "Please select a category first, then enable notifications"}
-          </p>
-          <Button
-            onClick={handleSubscribe}
-            disabled={!selectedCategory || !oneSignalState.isInitialized}
-            className="w-full"
-            size="lg"
-          >
-            <Bell className="mr-2 h-4 w-4" />
-            Enable Notifications
-          </Button>
-        </div>
-      )
-    }
+  //   if (!oneSignalState.isSubscribed) {
+  //     return (
+  //       <div className="space-y-4">
+  //         <p className="text-center text-gray-500">
+  //           {selectedCategory
+  //             ? "Click below to enable notifications for your selected category"
+  //             : "Please select a category first, then enable notifications"}
+  //         </p>
+  //         <Button
+  //           onClick={handleSubscribe}
+  //           disabled={!selectedCategory || !oneSignalState.isInitialized}
+  //           className="w-full"
+  //           size="lg"
+  //         >
+  //           <Bell className="mr-2 h-4 w-4" />
+  //           Enable Notifications
+  //         </Button>
+  //       </div>
+  //     )
+  //   }
 
-    return (
-      <Alert className="border-green-600 bg-green-50">
-        <div className="flex items-start">
-          <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2" />
-          <div className="flex-1">
-            <AlertTitle className="text-green-600">Notifications Enabled!</AlertTitle>
-            <AlertDescription className="text-gray-600">
-              <div>Your User ID: {oneSignalState.userId || "Loading..."}</div>
-              <div>Category: {categories.find(c => c.id === selectedCategory)?.name || "None selected"}</div>
-              <div className="mt-2 text-xs">
-                Push notifications will be delivered even when the website is closed, as long as you have internet connectivity.
-              </div>
-              {/* Debug info - remove in production */}
-              <div className="mt-2 text-xs opacity-50">
-                Debug: Subscribed={oneSignalState.isSubscribed.toString()}, Permission={oneSignalState.permission}
-              </div>
-            </AlertDescription>
-          </div>
-        </div>
-      </Alert>
-    )
-  }
+  //   return (
+  //     <Alert className="border-green-600 bg-green-50">
+  //       <div className="flex items-start">
+  //         <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 mr-2" />
+  //         <div className="flex-1">
+  //           <AlertTitle className="text-green-600">Notifications Enabled!</AlertTitle>
+  //           <AlertDescription className="text-gray-600">
+  //             <div>Your User ID: {oneSignalState.userId || "Loading..."}</div>
+  //             <div>Category: {categories.find(c => c.id === selectedCategory)?.name || "None selected"}</div>
+  //             <div className="mt-2 text-xs">
+  //               Push notifications will be delivered even when the website is closed, as long as you have internet connectivity.
+  //             </div>
+  //             {/* Debug info - remove in production */}
+  //             <div className="mt-2 text-xs opacity-50">
+  //               Debug: Subscribed={oneSignalState.isSubscribed.toString()}, Permission={oneSignalState.permission}
+  //             </div>
+  //           </AlertDescription>
+  //         </div>
+  //       </div>
+  //     </Alert>
+  //   )
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
