@@ -351,26 +351,7 @@ export default function OneSignal() {
     updateSubscriptionData()
   }, [selectedCategory, oneSignalState.isSubscribed, oneSignalState.userId])
 
-  // const handleSubscribe = async () => {
-  //   try {
-  //     if (!window.OneSignal || !selectedCategory) {
-  //       return
-  //     }
-
-  //     // Use the prompt method
-  //     await window.OneSignal.Slidedown.promptPush()
-      
-  //     // Wait a bit for the subscription to complete
-  //     setTimeout(async () => {
-  //       const onesignalId = await window.OneSignal.User.onesignalId
-  //       if (onesignalId) {
-  //         console.log('User subscribed with ID:', onesignalId)
-  //       }
-  //     }, 2000)
-  //   } catch (error) {
-  //     console.error("Subscribe error:", error)
-  //   }
-  // }
+ 
 
   const handleCategoryChange = async (categoryId) => {
     setSelectedCategory(categoryId)
