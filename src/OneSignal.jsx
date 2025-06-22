@@ -60,8 +60,8 @@ const OneSignal = () => {
         OneSignal.push(function() {
           OneSignal.init({
             // IMPORTANT: Replace with your actual OneSignal App ID
-            appId: "YOUR_ONESIGNAL_APP_ID", 
-            safari_web_id: "YOUR_SAFARI_WEB_ID", // If you have one
+            appId: "02d12db1-1701-46b8-b7ec-4d8b39fcbf99", 
+            //safari_web_id: "YOUR_SAFARI_WEB_ID", // If you have one
             allowLocalhostAsSecureOrigin: true,
           });
           
