@@ -109,7 +109,7 @@ const updateTagsWithRetry = async (tags, maxRetries = 3, delay = 2000) => {
     console.error('Cannot update tags: No OneSignal ID available');
     return false;
   }
-
+  
   for (let i = 0; i < maxRetries; i++) {
     try {
       await window.OneSignal.User.addTags(tags);
@@ -157,32 +157,32 @@ export default function OneSignal() {
           try {
             const isPushSupported = window.OneSignal.Notifications.isPushSupported()
             if (isPushSupported) {
-                const permission = await OneSignalInstance.Notifications.permission;
-  const isOptedIn = await OneSignalInstance.User.PushSubscription.optedIn;
-  
-  let onesignalId = null;
-  
-  // Only try to get the ID if the user is subscribed
-  if (isOptedIn) {
-    // Wait for the ID to be available
-    onesignalId = await OneSignalInstance.User.getOnesignalId();
-  }
-
-  // Now log and set state with all the data loaded
-  console.log('OneSignal initialized with:', {
-    permission,
-    isOptedIn,
-    onesignalId
-  });
-
-  setOneSignalState({
-    isLoading: false,
-    isInitialized: true,
-    isSubscribed: isOptedIn,
-    permission,
-    userId: onesignalId,
-    error: null,
-  });
+              const permission = await window.OneSignal.Notifications.permission;
+              const isOptedIn = await window.OneSignal.User.PushSubscription.optedIn;
+              
+              let onesignalId = null;
+              
+              // Only try to get the ID if the user is subscribed
+              if (isOptedIn) {
+                // Wait for the ID to be available
+                onesignalId = await window.OneSignal.User.getOnesignalId();
+              }
+              
+              // Now log and set state with all the data loaded
+              console.log('OneSignal initialized with:', {
+                permission,
+                isOptedIn,
+                onesignalId
+              });
+              
+              setOneSignalState({
+                isLoading: false,
+                isInitialized: true,
+                isSubscribed: isOptedIn,
+                permission,
+                userId: onesignalId,
+                error: null,
+              });
 
               if (isOptedIn && onesignalId) {
                 const savedCategory = localStorage.getItem("selectedNotificationCategory")
@@ -432,13 +432,13 @@ export default function OneSignal() {
             message: 'Your preference has been saved and will be updated shortly.',
             theme: 'light',
             duration: 3000,
-          });
+                    });
         }
       }
     }
   }
 
-   const handleSubscribe = async () => {
+  const handleSubscribe = async () => {
     if (!window.OneSignal) {
       console.error("OneSignal is not initialized");
       return;
