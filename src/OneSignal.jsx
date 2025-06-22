@@ -84,7 +84,8 @@ const Label = ({ htmlFor, children, className = "" }) => (
 const waitForOneSignalId = async (maxAttempts = 10, delay = 1000) => {
   for (let i = 0; i < maxAttempts; i++) {
     try {
-      const onesignalId = await window.OneSignal.User.onesignalId;
+      // Access onesignalId as a property, not a method
+      const onesignalId = window.OneSignal.User.onesignalId;
       if (onesignalId) {
         console.log(`OneSignal ID obtained after ${i + 1} attempts:`, onesignalId);
         return onesignalId;
@@ -164,8 +165,8 @@ export default function OneSignal() {
               
               // Only try to get the ID if the user is subscribed
               if (isOptedIn) {
-                // Wait for the ID to be available
-                onesignalId = await window.OneSignal.User.getOnesignalId();
+                // Access onesignalId as a property
+                onesignalId = window.OneSignal.User.onesignalId;
               }
               
               // Now log and set state with all the data loaded
@@ -425,14 +426,14 @@ export default function OneSignal() {
             subscribedAt: new Date().toISOString()
           }));
         } else {
-          console.error("Failed to update tags after retries");
+          console.error("Failed to update           tags after retries");
           // Show a user-friendly message
           addNotification({
             title: 'Update pending',
             message: 'Your preference has been saved and will be updated shortly.',
             theme: 'light',
             duration: 3000,
-                    });
+          });
         }
       }
     }
