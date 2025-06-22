@@ -157,26 +157,32 @@ export default function OneSignal() {
           try {
             const isPushSupported = window.OneSignal.Notifications.isPushSupported()
             if (isPushSupported) {
-              const permission = await window.OneSignal.Notifications.permission
-              const isOptedIn = await window.OneSignal.User.PushSubscription.optedIn
-              
-              // Wait for OneSignal ID to be available
-              const onesignalId = await waitForOneSignalId();
+                const permission = await OneSignalInstance.Notifications.permission;
+  const isOptedIn = await OneSignalInstance.User.PushSubscription.optedIn;
+  
+  let onesignalId = null;
+  
+  // Only try to get the ID if the user is subscribed
+  if (isOptedIn) {
+    // Wait for the ID to be available
+    onesignalId = await OneSignalInstance.User.getOnesignalId();
+  }
 
-              console.log('OneSignal State:', {
-                permission,
-                isOptedIn,
-                onesignalId
-              })
+  // Now log and set state with all the data loaded
+  console.log('OneSignal initialized with:', {
+    permission,
+    isOptedIn,
+    onesignalId
+  });
 
-              setOneSignalState({
-                isLoading: false,
-                isInitialized: true,
-                isSubscribed: isOptedIn,
-                permission,
-                userId: onesignalId,
-                error: null,
-              })
+  setOneSignalState({
+    isLoading: false,
+    isInitialized: true,
+    isSubscribed: isOptedIn,
+    permission,
+    userId: onesignalId,
+    error: null,
+  });
 
               if (isOptedIn && onesignalId) {
                 const savedCategory = localStorage.getItem("selectedNotificationCategory")
