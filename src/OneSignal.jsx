@@ -37,19 +37,7 @@ const categories = [
   },
 ]
 
-// Custom Button Component
-const Button = ({ children, onClick, disabled, className = "", size = "default" }) => {
-  const sizeClasses = size === "lg" ? "px-8 py-3 text-lg" : "px-4 py-2"
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`inline-flex items-center justify-center rounded-md bg-blue-600 text-white font-medium transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${sizeClasses} ${className}`}
-    >
-      {children}
-    </button>
-  )
-}
+
 
 // Custom Card Components
 const Card = ({ children, className = "" }) => (
@@ -74,28 +62,6 @@ const CardContent = ({ children }) => (
   <div className="p-6 pt-0">{children}</div>
 )
 
-// Custom Alert Component
-const Alert = ({ children, variant = "default", className = "" }) => {
-  const variantClasses = variant === "destructive" 
-    ? "border-red-600 bg-red-50" 
-    : "border-gray-200 bg-gray-50"
-  
-  return (
-    <div className={`relative w-full rounded-lg border p-4 ${variantClasses} ${className}`}>
-      {children}
-    </div>
-  )
-}
-
-const AlertTitle = ({ children, className = "" }) => (
-  <h5 className={`mb-1 font-medium leading-none tracking-tight ${className}`}>
-    {children}
-  </h5>
-)
-
-const AlertDescription = ({ children, className = "" }) => (
-  <div className={`text-sm ${className}`}>{children}</div>
-)
 
 // Custom Radio Group Components
 const RadioGroup = ({ value, onValueChange, children, className = "" }) => (
@@ -385,26 +351,26 @@ export default function OneSignal() {
     updateSubscriptionData()
   }, [selectedCategory, oneSignalState.isSubscribed, oneSignalState.userId])
 
-  const handleSubscribe = async () => {
-    try {
-      if (!window.OneSignal || !selectedCategory) {
-        return
-      }
+  // const handleSubscribe = async () => {
+  //   try {
+  //     if (!window.OneSignal || !selectedCategory) {
+  //       return
+  //     }
 
-      // Use the prompt method
-      await window.OneSignal.Slidedown.promptPush()
+  //     // Use the prompt method
+  //     await window.OneSignal.Slidedown.promptPush()
       
-      // Wait a bit for the subscription to complete
-      setTimeout(async () => {
-        const onesignalId = await window.OneSignal.User.onesignalId
-        if (onesignalId) {
-          console.log('User subscribed with ID:', onesignalId)
-        }
-      }, 2000)
-    } catch (error) {
-      console.error("Subscribe error:", error)
-    }
-  }
+  //     // Wait a bit for the subscription to complete
+  //     setTimeout(async () => {
+  //       const onesignalId = await window.OneSignal.User.onesignalId
+  //       if (onesignalId) {
+  //         console.log('User subscribed with ID:', onesignalId)
+  //       }
+  //     }, 2000)
+  //   } catch (error) {
+  //     console.error("Subscribe error:", error)
+  //   }
+  // }
 
   const handleCategoryChange = async (categoryId) => {
     setSelectedCategory(categoryId)
